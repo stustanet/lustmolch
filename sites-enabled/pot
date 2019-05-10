@@ -1,14 +1,4 @@
 server {
-    listen 80;
-    server_name lustmolch.stusta.de;
-    charset utf-8;
-
-    location / {
-        rewrite ^(.*)$ /www/data/index.html;
-    }
-}
-
-server {
 
     listen 80;
     server_name pot.stusta.de;
