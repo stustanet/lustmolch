@@ -1,0 +1,8 @@
+[Network]
+VirtualEthernet=no
+
+[Files]
+Bind=/var/www/{{name}}:/var/www
+
+[Exec]
+PrivateUsers=off

@@ -1,0 +1,9 @@
+server {
+    listen 80;
+    server_name {{name}}.stusta.de;
+    charset utf-8;
+
+    location /static {
+        alias /var/www/{{name}};
+    }
+}
