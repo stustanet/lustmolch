@@ -91,7 +91,8 @@ def create_container(dry_run, config_file, name):
     # place configuration files
     context = {
         'name': name,
-        'ssh_port': next_ssh_port(config_file, name)
+        'ssh_port': next_ssh_port(config_file, name),
+        'url': f'{name}.stusta.de'
     }
     for cfg in template_files_host:
         template = env.get_template(cfg.source)
@@ -106,11 +107,6 @@ def create_container(dry_run, config_file, name):
     click.echo(f'Running debootstrap')
     if not dry_run:
         run(['debootstrap', FLAVOUR, machine_path, DEBIAN_MIRROR], capture_output=True, check=True)
-
-    # start container for the first time
-    # click.echo(f'Starting container for the first time')
-    # if not dry_run:
-    #     run(['systemd-nspawn', '-D', machine_path], check=True)
 
     click.echo(f'Bootstrapping container')
     if not dry_run:
