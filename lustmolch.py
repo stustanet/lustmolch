@@ -49,7 +49,7 @@ def next_ssh_port(config_file, name):
     if name in cfg:
         return cfg.get(name).get('ssh_port')
     port = SSH_START_PORT
-    for container in cfg.items():
+    for name, container in cfg.items():
         if container.get('ssh_port') >= port:
             port = container.get('ssh_port') + SSH_PORT_INCREMENT
 
