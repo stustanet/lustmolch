@@ -129,9 +129,10 @@ def create_container(dry_run, config_file, name):
                     f.write(template.render(context))
 
     click.echo(f'Updating Iptable rules for port {context["ssh_port"]}')
-    ip_ranges = ['10.150.0.0/17', '141.84.69.0/24']
-    for ip_range in ip_ranges:
-        run(['iptables', '-A', 'INPUT', '-p', 'tcp', '-m', 'tcp', '--dport', context['ssh_port'], '-s', ip_range, '-j', 'ACCEPT'])
+    if not dry_run:
+        ip_ranges = ['10.150.0.0/17', '141.84.69.0/24']
+        for ip_range in ip_ranges:
+            run(['iptables', '-A', 'INPUT', '-p', 'tcp', '-m', 'tcp', '--dport', context['ssh_port'], '-s', ip_range, '-j', 'ACCEPT'])
 
     click.echo('Starting container')
     if not dry_run:
