@@ -13,9 +13,7 @@ cfg_template = namedtuple('cfg_template', ['source', 'path', 'filename'])
 
 template_files_host = [
     cfg_template('nginx', Path('/etc/nginx/sites-available'), '{name}'),
-    cfg_template('nspawn', Path('/etc/systemd/nspawn'), '{name}.nspawn'),
-    cfg_template('iptables.v4', Path('/etc/iptables'), '{50-container-{name}.v4'),
-    cfg_template('iptables.v6', Path('/etc/iptables'), '{50-container-{name}.v6')
+    cfg_template('nspawn', Path('/etc/systemd/nspawn'), '{name}.nspawn')
 ]
 template_files_container = [
     cfg_template('sshd_config', Path('/etc/ssh'), 'sshd_config')
@@ -106,11 +104,11 @@ def create_container(dry_run, config_file, name):
 
     # create machine
     machine_path = Path('/var/lib/machines', name)
-    click.echo(f'Running debootstrap')
+    click.echo('Running debootstrap')
     if not dry_run:
         run(['debootstrap', FLAVOUR, machine_path, DEBIAN_MIRROR], capture_output=True, check=True)
 
-    click.echo(f'Bootstrapping container')
+    click.echo('Bootstrapping container')
     if not dry_run:
         # copy and run bootstrap shell script
         script_location = '/opt/bootstrap.sh'
@@ -120,7 +118,7 @@ def create_container(dry_run, config_file, name):
         Path(script_location_host).chmod(0o755)
         run(['systemd-nspawn', '-D', str(machine_path), script_location], check=True)
 
-    click.echo(f'Copying config files into container')
+    click.echo('Copying config files into container')
     if not dry_run:
         for cfg in template_files_container:
             template = env.get_template(cfg.source)
@@ -130,15 +128,20 @@ def create_container(dry_run, config_file, name):
                 with open(Path(f'{machine_path}{cfg.path}/{file_name}'), 'w+') as f:
                     f.write(template.render(context))
 
-    click.echo(f'Starting container')
+    click.echo(f'Updating Iptable rules for port {context["ssh_port"]}')
+    ip_ranges = ['10.150.0.0/17', '141.84.69.0/24']
+    for ip_range in ip_ranges:
+        run(['iptables', '-A', 'INPUT', '-p', 'tcp', '-m', 'tcp', '--dport', context['ssh_port'], '-s', ip_range, '-j', 'ACCEPT'])
+
+    click.echo('Starting container')
     if not dry_run:
         run(['machinectl', 'start', name], capture_output=True, check=True)
 
-    click.echo(f'Updating container configuration file')
+    click.echo('Updating container configuration file')
     if not dry_run:
         update_config(config_file, name, container=context)
 
-    click.echo(f'All done, ssh server running on port {context["ssh_port"]}')
+    click.echo(f'All done, ssh server running on port {context["ssh_port"]}\nTo finish please run "iptables-save".')
 
 
 @cli.command()
