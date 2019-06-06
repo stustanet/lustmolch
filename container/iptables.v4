@@ -1,0 +1,8 @@
+# iptable v4 rules for lustmolch container {{name}}
+*filter
+
+-A INPUT -p tcp -m tcp --dport {{ssh_port}} 10.150.0.0/17 -j ACCEPT
+-A INPUT -p tcp -m tcp --dport {{ssh_port}} 141.84.69.0/24 -j ACCEPT
+
+COMMIT
+

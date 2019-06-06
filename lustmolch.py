@@ -13,7 +13,9 @@ cfg_template = namedtuple('cfg_template', ['source', 'path', 'filename'])
 
 template_files_host = [
     cfg_template('nginx', Path('/etc/nginx/sites-available'), '{name}'),
-    cfg_template('nspawn', Path('/etc/systemd/nspawn'), '{name}.nspawn')
+    cfg_template('nspawn', Path('/etc/systemd/nspawn'), '{name}.nspawn'),
+    cfg_template('iptables.v4', Path('/etc/iptables'), '{50-container-{name}.v4'),
+    cfg_template('iptables.v6', Path('/etc/iptables'), '{50-container-{name}.v6')
 ]
 template_files_container = [
     cfg_template('sshd_config', Path('/etc/ssh'), 'sshd_config')
