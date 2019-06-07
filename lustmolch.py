@@ -22,6 +22,7 @@ template_files_container = [
 FLAVOUR = 'buster'
 DEBIAN_MIRROR = 'http://mirror.stusta.de/debian'
 
+IP_RANGES = ['10.150.0.0/17', '141.84.69.0/24']
 www_root = Path('/var/www')
 
 SSH_START_PORT = 10022
@@ -130,8 +131,7 @@ def create_container(dry_run, config_file, name):
 
     click.echo(f'Updating Iptable rules for port {context["ssh_port"]}')
     if not dry_run:
-        ip_ranges = ['10.150.0.0/17', '141.84.69.0/24']
-        for ip_range in ip_ranges:
+        for ip_range in IP_RANGES:
             run(['iptables', '-A', 'INPUT', '-p', 'tcp', '-m', 'tcp', '--dport', context['ssh_port'], '-s', ip_range, '-j', 'ACCEPT'])
 
     click.echo('Starting container')
@@ -207,6 +207,8 @@ def remove_container(config_file, name):
                     json.dump(cfg, f, indent=4)
     except OSError as e:
         click.echo(f'{e} ignored when updating config file')
+
+    click.echo('All done, although you might need to manually remove some iptable rules.')
 
 
 if __name__ == '__main__':
