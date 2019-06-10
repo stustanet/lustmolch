@@ -240,7 +240,7 @@ def install_ssh_key(config_file, key_string, name, key):
     click.echo(f'Appending ssh key\n{key_string} to {authorized_keys}')
     ssh_dir.mkdir(mode=0o700, parents=True, exist_ok=True)
     with open(authorized_keys, 'a+') as f:
-        f.write(key_string)
+        f.write('\n' + key_string)
     authorized_keys.chmod(0o600)
 
 
