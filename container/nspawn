@@ -1,5 +1,5 @@
 [Network]
-VirtualEthernet=no
+VirtualEthernet=yes
 
 [Files]
 Bind=/var/www/{{name}}:/var/www

@@ -1,0 +1,11 @@
+[Match]
+Virtualization=container
+Name=host0
+
+[Network]
+DHCP=no
+DNS={{ dns_server }}
+Address={{ ip_address_container }}
+Gateway={{ gateway }}
+LLDP=yes
+EmitLLDP=customer-bridge
