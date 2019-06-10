@@ -34,9 +34,8 @@ SSH_PORT_INCREMENT = 1000
 
 IP_LUSTMOLCH = '141.84.69.235'  # TODO: find out dynamically
 
-IP_START_CONTAINER = (192, 168, 0, 1) 
-IP_START_HOST = (192, 168, 128, 1)
-IP_SUBNET_LENGTH = 16
+IP_START_HOST = (192, 168, 0, 1)
+IP_SUBNET_LENGTH = 30
 
 
 def next_ssh_port(config_file, name):
@@ -87,32 +86,22 @@ def next_ip_address(config_file, name):
             cfg[name].get('ip_address_container').split('/')[0])
 
     ip_host = list(IP_START_HOST)
-    ip_container = list(IP_START_CONTAINER)
     for name, container in cfg.items():
         if 'ip_address_host' not in container or 'ip_address_container' not in container:
             continue
         ip_h = container.get('ip_address_host').split('/')[0].split('.')
-        ip_c = container.get('ip_address_container').split('/')[0].split('.')
         if int(ip_h[2]) > ip_host[2]:
-            ip_host = int(ip_h)
-            ip_host[3] += 1
+            ip_host = [int(x) for x in ip_h]
+            ip_host[3] += 4
         elif int(ip_h[2]) == ip_host[2] and int(ip_h[3]) > ip_host[3]:
             if int(ip_h[3]) == 254:
                 ip_host[2] += 1
                 ip_host[3] = 1
             else:
-                ip_host[3] = int(ip_h[3]) + 1
-        
-        if int(ip_c[2]) > ip_container[2]:
-            ip_container = int(ip_c)
-            ip_container[3] += 1
-        elif int(ip_c[2]) == ip_container[2] and int(ip_c[3]) > ip_container[3]:
-            if int(ip_c[3]) == 254:
-                ip_container[2] += 1
-                ip_container[3] = 1
-            else:
-                ip_container[3] = int(ip_c[3]) + 1
+                ip_host[3] = int(ip_h[3]) + 4
     
+    ip_container = list(ip_host)
+    ip_container[3] += 1
     return ('.'.join(str(x) for x in ip_host), '.'.join(str(x) for x in ip_container))
 
 
@@ -159,6 +148,9 @@ def create_container(dry_run, config_file, name):
         'ip_subnet_length': IP_SUBNET_LENGTH,
         'url': f'{name}.stusta.de'
     }
+
+    click.echo(f'Generated context values for container: {repr(context)}')
+
     for cfg in template_files_host:
         template = env.get_template('host/' + cfg.source)
         file_name = cfg.path / (cfg.filename.format(**context))
