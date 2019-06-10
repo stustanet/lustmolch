@@ -93,25 +93,25 @@ def next_ip_address(config_file, name):
             continue
         ip_h = container.get('ip_address_host').split('/')[0].split('.')
         ip_c = container.get('ip_address_container').split('/')[0].split('.')
-        if ip_h[2] > ip_host[2]:
-            ip_host = ip_h
+        if int(ip_h[2]) > ip_host[2]:
+            ip_host = int(ip_h)
             ip_host[3] += 1
-        elif ip_h[2] == ip_host[2] and ip_h[3] > ip_host[3]:
-            if ip_h[3] == 254:
+        elif int(ip_h[2]) == ip_host[2] and int(ip_h[3]) > ip_host[3]:
+            if int(ip_h[3]) == 254:
                 ip_host[2] += 1
                 ip_host[3] = 1
             else:
-                ip_host[3] = ip_h[3] + 1
+                ip_host[3] = int(ip_h[3]) + 1
         
-        if ip_c[2] > ip_container[2]:
-            ip_container = ip_c
+        if int(ip_c[2]) > ip_container[2]:
+            ip_container = int(ip_c)
             ip_container[3] += 1
-        elif ip_c[2] == ip_container[2] and ip_c[3] > ip_container[3]:
-            if ip_c[3] == 254:
+        elif int(ip_c[2]) == ip_container[2] and int(ip_c[3]) > ip_container[3]:
+            if int(ip_c[3]) == 254:
                 ip_container[2] += 1
                 ip_container[3] = 1
             else:
-                ip_container[3] = ip_c[3] + 1
+                ip_container[3] = int(ip_c[3]) + 1
     
     return ('.'.join(str(x) for x in ip_host), '.'.join(str(x) for x in ip_container))
 
