@@ -17,7 +17,8 @@ Name=host0
 
 [Network]
 DHCP=no
-DNS={{ ip_address_host }}
+DNS=10.150.127.2
+DNS=10.150.125.2
 Address={{ ip_address_container }}/{{ ip_subnet_length }}
 Gateway={{ ip_address_host }}
 LLDP=yes

@@ -13,14 +13,14 @@ cfg_template = namedtuple('cfg_template', ['source', 'path', 'filename'])
 
 template_files_host = [
     cfg_template('nginx', Path('/etc/nginx/sites-available'), '{name}'),
-    cfg_template('nspawn', Path('/etc/systemd/nspawn'), '{name}.nspawn'),
     cfg_template('80-container-ve.network', Path('/etc/systemd/network'),
-        '80-container.ve-{name}.network')
+        '80-container-ve-{name}.network')
 ]
+nspawn_config = cfg_template('nspawn', Path('/etc/systemd/nspawn'), '{name}.nspawn')
 template_files_container = [
     cfg_template('sshd_config', Path('/etc/ssh'), 'sshd_config'),
-    cfg_template('80-container.host0.network', Path('/etc/systemd/network'),
-        '80-container.host0.network')
+    cfg_template('80-container-host0.network', Path('/etc/systemd/network'),
+        '80-container-host0.network')
 ]
 
 FLAVOUR = 'buster'
@@ -113,7 +113,7 @@ def next_ip_address(config_file, name):
             else:
                 ip_container[3] = ip_c[3] + 1
     
-    return (ip_host.join('.'), ip_container.join('.'))
+    return ('.'.join(str(x) for x in ip_host), '.'.join(str(x) for x in ip_container))
 
 
 def update_config(config_file, name, container):
@@ -149,7 +149,7 @@ def create_container(dry_run, config_file, name):
         www_dir.mkdir(parents=True, exist_ok=True)
 
     # place configuration files
-    ip_address_container, ip_address_host = next_ip_address(config_file, name)
+    ip_address_host, ip_address_container = next_ip_address(config_file, name)
     ssh_port = next_ssh_port(config_file, name)
     context = {
         'name': name,
@@ -183,6 +183,13 @@ def create_container(dry_run, config_file, name):
         Path(script_location_host).chmod(0o755)
         run(['systemd-nspawn', '-D', str(machine_path), script_location], check=True)
 
+    click.echo(f'Installing systemd-nspawn config for container {name}')
+    if not dry_run:
+        template = env.get_template('host/' + nspawn_config.source)
+        file_name = nspawn_config.path / (nspawn_config.filename.format(**context))
+        with open(file_name, 'w+') as cfg_file:
+            cfg_file.write(template.render(context))
+
     click.echo('Copying config files into container')
     if not dry_run:
         for cfg in template_files_container:
@@ -197,9 +204,9 @@ def create_container(dry_run, config_file, name):
     if not dry_run:
         for ip_range in SSN_IP_RANGES:
             run(['iptables', '-A', 'INPUT', '-p', 'tcp', '-m', 'tcp',
-                '--dport', ssh_port, '-s', ip_range, '-j', 'ACCEPT'])
+                '--dport', str(ssh_port), '-s', ip_range, '-j', 'ACCEPT'])
             run(['iptables', '-t' , 'nat', '-A', 'PREROUTING', '-p', 'tcp',
-                '-m' ,'tcp', '--dport', ssh_port, '-s', ip_range, '-j', 'DNAT',
+                '-m' ,'tcp', '--dport', str(ssh_port), '-s', ip_range, '-j', 'DNAT',
                 '--to-destination', f'{ip_address_container}:22'])
         run(['iptables', '-t', 'nat', '-A', 'POSTROUTING', '-o', f've-{name}',
             '-j', 'SNAT', '--to-source', IP_LUSTMOLCH])
@@ -264,6 +271,12 @@ def remove_container(dry_run, config_file, name):
             file_name.unlink()
         except OSError as e:
             click.echo(f'{e} ignored when removing file {file_name}')
+    
+    click.echo('Removing nspawn config')
+    try:
+        (nspawn_config.path / nspawn_config.filename.format(name=name)).unlink()
+    except OSError as e:
+        click.echo(f'{e} ignored when removing nspawn config')
 
     # delete container itself
     click.echo(f'Removing container')
