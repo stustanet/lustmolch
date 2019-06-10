@@ -6,3 +6,4 @@ Bind=/var/www/{{name}}:/var/www
 
 [Exec]
 PrivateUsers=off
+Hostname={{name}}

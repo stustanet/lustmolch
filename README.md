@@ -13,7 +13,7 @@ Dabei werden nötige Pakete installiert, alle Konfigurationsfiles sowohl auf dem
 Außerdem wird im container **openssh-server** installiert und gestartet. Der Port wird dynamisch auf den ersten 
 freien Port ab **10022** in Inkrementen von **1000** gesetzt.
 
-Die templates für Konfigurationsfiles liegen im directory **container**.
+Die templates für Konfigurationsfiles liegen im directory **templates**.
 
 ### Container VERNICHTEN
 ```bash

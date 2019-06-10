@@ -10,7 +10,7 @@
 # possible, but leave them commented.  Uncommented options override the
 # default value.
 
-Port {{ssh_port}}
+Port 22
 #AddressFamily any
 #ListenAddress 0.0.0.0
 #ListenAddress ::
@@ -29,7 +29,7 @@ Port {{ssh_port}}
 # Authentication:
 
 #LoginGraceTime 2m
-PermitRootLogin without-password
+PermitRootLogin prohibit-password
 StrictModes yes
 #MaxAuthTries 6
 #MaxSessions 10

@@ -1,7 +1,0 @@
-# iptable v6 rules for lustmolch container {{name}}
-
-*filter
-
--A INPUT -p tcp -m tcp --dport {{ssh_port}} 2001:4ca0:200::/48 -j ACCEPT
-
-COMMIT
