@@ -23,6 +23,9 @@ template_files_container = [
         '80-container-host0.network')
 ]
 
+DEFAULT_TEMPLATE_DIR = '/srv/lustmolch-tools/templates'
+DEFAULT_CONF_FILE = '/etc/ssn/lustmolch-containers.json'
+
 FLAVOUR = 'buster'
 DEBIAN_MIRROR = 'http://mirror.stusta.de/debian'
 
@@ -125,7 +128,7 @@ def cli():
 
 @cli.command()
 @click.option('--dry-run', is_flag=True, default=False)
-@click.option('--config-file', default='containers.json', help='Container configuration file')
+@click.option('--config-file', default=DEFAULT_CONF_FILE, help='Container configuration file')
 @click.argument('name')
 def create_container(dry_run, config_file, name):
     if dry_run:
@@ -171,7 +174,7 @@ def create_container(dry_run, config_file, name):
         script_location = '/opt/bootstrap.sh'
         script_location_host = str(machine_path) + script_location
 
-        shutil.copy('templates/container/bootstrap.sh', script_location_host)
+        shutil.copy(str(Path(DEFAULT_TEMPLATE_DIR, 'container/bootstrap.sh')), script_location_host)
         Path(script_location_host).chmod(0o755)
         run(['systemd-nspawn', '-D', str(machine_path), script_location], check=True)
 
@@ -216,7 +219,7 @@ def create_container(dry_run, config_file, name):
 
 
 @cli.command()
-@click.option('--config-file', default='containers.json', help='Container configuration file')
+@click.option('--config-file', default=DEFAULT_CONF_FILE, help='Container configuration file')
 @click.option('--key-string', is_flag=True, default=False)
 @click.argument('name')
 @click.argument('key')
@@ -238,7 +241,7 @@ def install_ssh_key(config_file, key_string, name, key):
 
 @cli.command()
 @click.option('--dry-run', is_flag=True, default=False)
-@click.option('--config-file', default='containers.json', help='Container configuration file')
+@click.option('--config-file', default=DEFAULT_CONF_FILE, help='Container configuration file')
 @click.argument('name')
 def remove_container(dry_run, config_file, name):
     machine_path = Path('/var/lib/machines', name)
