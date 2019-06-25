@@ -43,7 +43,10 @@ IP_SUBNET_LENGTH = 30
 
 
 def gen_default_conf():
-    return {}
+    return {
+        'users': {},
+        'containers': {}
+    }
 
 
 def get_config(file_path):
@@ -68,11 +71,11 @@ def next_ssh_port(cfg, name):
     Returns: SSH port
     """
 
-    if name in cfg:
-        return cfg[name].get('ssh_port')
+    if name in cfg['containers']:
+        return cfg['containers'][name].get('ssh_port')
 
     port = SSH_START_PORT
-    for container in cfg.values():
+    for container in cfg['containers'].values():
         if container['ssh_port'] >= port:
             port = container['ssh_port'] + SSH_PORT_INCREMENT
 
@@ -90,16 +93,16 @@ def next_ip_address(cfg, name):
     Returns (tuple): host_ip, container_ip
     """
 
-    if name in cfg:
-        c = cfg[name]
+    if name in cfg['containers']:
+        c = cfg['containers'][name]
         return (c.get('ip_address_host').split('/')[0],
                 c.get('ip_address_container').split('/')[0])
 
     ip_host = list(IP_START_HOST)
 
     container_ips = [container['ip_address_host'].split('/')[0].split('.') 
-            for container in cfg.values()]
-    print(container_ips)
+            for container in cfg['containers'].values()]
+
     ip_host[2] = max([int(ip[2]) for ip in container_ips])
     ip_host[3] = max([int(ip[3]) for ip in container_ips])
     ip_host[3] += 4
@@ -123,12 +126,12 @@ def update_config(config_file, container):
     if not Path(config_file).exists():
         with open(config_file, 'w+') as f:
             cfg = gen_default_conf()
-            cfg[container['name']] = container
+            cfg['containers'][container['name']] = container
             json.dump(cfg, f, indent=4)
     else:
         with open(config_file, 'r') as f:
             cfg = json.load(f)
-            cfg[container['name']] = container
+            cfg['containers'][container['name']] = container
 
         with open(config_file, 'w') as f:
             json.dump(cfg, f, indent=4)
@@ -147,7 +150,7 @@ def cli():
 def list_containers(config_file):
     cfg = get_config(config_file)
 
-    click.echo('Currently registered containers\n')
+    click.echo('Currently registered containers:\n')
     click.echo(json.dumps(cfg, indent=4))
 
 
@@ -178,7 +181,8 @@ def create_container(dry_run, config_file, name):
         'ip_address_host': ip_address_host,
         'ip_address_container': ip_address_container,
         'ip_subnet_length': IP_SUBNET_LENGTH,
-        'url': f'{name}.stusta.de'
+        'url': f'{name}.stusta.de',
+        'users': []
     }
 
     click.echo(f'Generated context values for container: {repr(context)}')
@@ -261,7 +265,69 @@ def create_container(dry_run, config_file, name):
 @click.option('--key-string', is_flag=True, default=False)
 @click.argument('name')
 @click.argument('key')
+def add_user(config_file, key_string, name, key):
+    if key_string:
+        key_string = key
+    else:
+        with open(key, 'r') as f:
+            key_string = f.read()
+    cfg = get_config(config_file)
+
+    cfg['users'][name] = {
+        'name': name,
+        'key': key
+    }
+
+    with open(config_file, 'w') as f:
+        json.dump(cfg, f, indent=4)
+
+
+@cli.command()
+@click.option(
+    '--config-file',
+    default=DEFAULT_CONF_FILE,
+    help='Container configuration file')
+@click.argument('name')
+def remove_user(config_file, name)
+    cfg = get_config(config_file)
+    if name in cfg['users']:
+        del cfg['users'][name]
+    
+    with open(config_file, 'w') as f:
+        json.dump(cfg, f, indent=4)
+
+
+@cli.command()
+@click.option('--dry-run', is_flag=True, default=False)
+@click.option(
+    '--config-file',
+    default=DEFAULT_CONF_FILE,
+    help='Container configuration file')
+def update_containers(dry_run, config_file):
+    cfg = get_config(config_file)
+
+    for container in cfg['containers'].values():
+        ssh_dir = Path('/var/lib/machines', container['name'], 'root/.ssh')
+        authorized_keys = ssh_dir / 'authorized_keys'
+
+        keys = '\n'.join([user['key'] if user['name'] in container['users'] for user in cfg['users']])
+        click.echo(f'Writing\n\n{keys}\n to authorized key file {authorized_keys}')
+        if not dry_run:
+            ssh_dir.mkdir(mode=0o700, parents=True, exist_ok=True)
+            authorized_keys.touch(mode=0o600, exist_ok=True)
+            authorized_keys.write_text(keys)
+
+
+@cli.command()
+@click.option(
+    '--config-file',
+    default=DEFAULT_CONF_FILE,
+    help='Container configuration file')
+@click.option('--key-string', is_flag=True, default=False)
+@click.argument('name')
+@click.argument('key')
 def install_ssh_key(config_file, key_string, name, key):
+    click.echo('DEPRECATED: Use add-user, update-contaienrs instead. Will be removed soon!')
     ssh_dir = Path('/var/lib/machines', name, 'root/.ssh')
     authorized_keys = ssh_dir / 'authorized_keys'
     if key_string:
