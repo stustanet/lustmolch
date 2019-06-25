@@ -148,6 +148,7 @@ def cli():
     default=DEFAULT_CONF_FILE,
     help='Container configuration file')
 def list_containers(config_file):
+    """output lustmolch configuration file"""
     cfg = get_config(config_file)
 
     click.echo('Currently registered containers:\n')
@@ -162,6 +163,7 @@ def list_containers(config_file):
     help='Container configuration file')
 @click.argument('name')
 def create_container(dry_run, config_file, name):
+    """Creates a systemd-nspawn container."""
     if dry_run:
         click.echo(f'Doing a dry run')
 
@@ -266,6 +268,7 @@ def create_container(dry_run, config_file, name):
 @click.argument('name')
 @click.argument('key')
 def add_user(config_file, key_string, name, key):
+    """add user to lustmolch management"""
     if key_string:
         key_string = key
     else:
@@ -289,6 +292,7 @@ def add_user(config_file, key_string, name, key):
     help='Container configuration file')
 @click.argument('name')
 def remove_user(config_file, name):
+    """remove a user, doesn't remove the user from all containers"""
     cfg = get_config(config_file)
     if name in cfg['users']:
         del cfg['users'][name]
@@ -304,6 +308,7 @@ def remove_user(config_file, name):
     default=DEFAULT_CONF_FILE,
     help='Container configuration file')
 def update_containers(dry_run, config_file):
+    """update users on all containers"""
     cfg = get_config(config_file)
 
     for container in cfg['containers'].values():
@@ -329,6 +334,7 @@ def update_containers(dry_run, config_file):
 @click.argument('name')
 @click.argument('key')
 def install_ssh_key(config_file, key_string, name, key):
+    """copy a ssh key into a containers authorized_keys"""
     click.echo('DEPRECATED: Use add-user, update-contaienrs instead. Will be removed soon!')
     ssh_dir = Path('/var/lib/machines', name, 'root/.ssh')
     authorized_keys = ssh_dir / 'authorized_keys'
@@ -353,6 +359,7 @@ def install_ssh_key(config_file, key_string, name, key):
     help='Container configuration file')
 @click.argument('name')
 def remove_container(dry_run, config_file, name):
+    """delete a container and its configuration files"""
     machine_path = Path('/var/lib/machines', name)
 
     click.echo(f'Stopping container')
