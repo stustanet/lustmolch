@@ -14,14 +14,15 @@ cfg_template = namedtuple('cfg_template', ['source', 'path', 'filename'])
 template_files_host = [
     cfg_template('nginx', Path('/etc/nginx/sites-available'), '{name}'),
     cfg_template('80-container-ve.network', Path('/etc/systemd/network'),
-        '80-container-ve-{name}.network')
+                 '80-container-ve-{name}.network')
 ]
-nspawn_config = cfg_template('nspawn', Path('/etc/systemd/nspawn'), '{name}.nspawn')
 template_files_container = [
     cfg_template('sshd_config', Path('/etc/ssh'), 'sshd_config'),
     cfg_template('80-container-host0.network', Path('/etc/systemd/network'),
-        '80-container-host0.network')
+                 '80-container-host0.network')
 ]
+nspawn_config = cfg_template('nspawn', Path(
+    '/etc/systemd/nspawn'), '{name}.nspawn')
 
 DEFAULT_TEMPLATE_DIR = '/srv/lustmolch-tools/templates'
 DEFAULT_CONF_FILE = '/etc/ssn/lustmolch-containers.json'
@@ -41,6 +42,20 @@ IP_START_HOST = (192, 168, 0, 1)
 IP_SUBNET_LENGTH = 30
 
 
+def gen_default_conf():
+    return {}
+
+
+def get_config(file_path):
+    if not Path(file_path).exists():
+        cfg = gen_default_conf()
+    else:
+        with open(file_path, 'r') as f:
+            cfg = json.load(f)
+
+    return cfg
+
+
 def next_ssh_port(config_file, name):
     """
     Return the next available port for the containers ssh server to run on.
@@ -52,25 +67,22 @@ def next_ssh_port(config_file, name):
 
     Returns: SSH port
     """
-    if not Path(config_file).exists():
-        cfg = {}
-    else:
-        with open(config_file, 'r') as f:
-            cfg = json.load(f)
+    cfg = get_config(config_file)
 
     if name in cfg:
-        return cfg.get(name).get('ssh_port')
+        return cfg[name].get('ssh_port')
+
     port = SSH_START_PORT
-    for name, container in cfg.items():
-        if container.get('ssh_port') >= port:
-            port = container.get('ssh_port') + SSH_PORT_INCREMENT
+    for container_name, container in cfg.items():
+        if container['ssh_port'] >= port:
+            port = container['ssh_port'] + SSH_PORT_INCREMENT
 
     return port
 
 
 def next_ip_address(config_file, name):
     """
-    Return the next available (local) IP address to be assigned to the 
+    Return the next available (local) IP address to be assigned to the
     container and the host interfaces.
     Args:
         config_file: Path to container configuration file (containers.json)
@@ -85,11 +97,12 @@ def next_ip_address(config_file, name):
             cfg = json.load(f)
 
     if name in cfg:
-        return (cfg[name].get('ip_address_host').split('/')[0], 
-            cfg[name].get('ip_address_container').split('/')[0])
+        c = cfg[name]
+        return (c.get('ip_address_host').split('/')[0],
+                c.get('ip_address_container').split('/')[0])
 
     ip_host = list(IP_START_HOST)
-    for name, container in cfg.items():
+    for container_name, container in cfg.items():
         if 'ip_address_host' not in container or 'ip_address_container' not in container:
             continue
         ip_h = container.get('ip_address_host').split('/')[0].split('.')
@@ -102,21 +115,26 @@ def next_ip_address(config_file, name):
                 ip_host[3] = 1
             else:
                 ip_host[3] = int(ip_h[3]) + 4
-    
+
     ip_container = list(ip_host)
     ip_container[3] += 1
-    return ('.'.join(str(x) for x in ip_host), '.'.join(str(x) for x in ip_container))
+    return (
+        '.'.join(
+            str(x) for x in ip_host), '.'.join(
+            str(x) for x in ip_container))
 
 
-def update_config(config_file, name, container):
+def update_config(config_file, container):
     if not Path(config_file).exists():
         with open(config_file, 'w+') as f:
-            cfg = {name: container}
+            cfg = gen_default_conf()
+            cfg[container['name']] = container
             json.dump(cfg, f, indent=4)
     else:
         with open(config_file, 'r') as f:
             cfg = json.load(f)
-            cfg[name] = container
+            cfg[container['name']] = container
+
         with open(config_file, 'w') as f:
             json.dump(cfg, f, indent=4)
 
@@ -128,7 +146,10 @@ def cli():
 
 @cli.command()
 @click.option('--dry-run', is_flag=True, default=False)
-@click.option('--config-file', default=DEFAULT_CONF_FILE, help='Container configuration file')
+@click.option(
+    '--config-file',
+    default=DEFAULT_CONF_FILE,
+    help='Container configuration file')
 @click.argument('name')
 def create_container(dry_run, config_file, name):
     if dry_run:
@@ -166,7 +187,8 @@ def create_container(dry_run, config_file, name):
     machine_path = Path('/var/lib/machines', name)
     click.echo('Running debootstrap')
     if not dry_run:
-        run(['debootstrap', FLAVOUR, machine_path, DEBIAN_MIRROR], capture_output=True, check=True)
+        run(['debootstrap', FLAVOUR, machine_path, DEBIAN_MIRROR],
+            capture_output=True, check=True)
 
     click.echo('Bootstrapping container')
     if not dry_run:
@@ -174,14 +196,18 @@ def create_container(dry_run, config_file, name):
         script_location = '/opt/bootstrap.sh'
         script_location_host = str(machine_path) + script_location
 
-        shutil.copy(str(Path(DEFAULT_TEMPLATE_DIR, 'container/bootstrap.sh')), script_location_host)
+        shutil.copy(
+            str(Path(DEFAULT_TEMPLATE_DIR, 'container/bootstrap.sh')),
+            script_location_host)
         Path(script_location_host).chmod(0o755)
-        run(['systemd-nspawn', '-D', str(machine_path), script_location], check=True)
+        run(['systemd-nspawn', '-D', str(machine_path), script_location],
+            check=True)
 
     click.echo(f'Installing systemd-nspawn config for container {name}')
     if not dry_run:
         template = env.get_template('host/' + nspawn_config.source)
-        file_name = nspawn_config.path / (nspawn_config.filename.format(**context))
+        file_name = nspawn_config.path / \
+            (nspawn_config.filename.format(**context))
         with open(file_name, 'w+') as cfg_file:
             cfg_file.write(template.render(context))
 
@@ -199,12 +225,13 @@ def create_container(dry_run, config_file, name):
     if not dry_run:
         for ip_range in SSN_IP_RANGES:
             run(['iptables', '-A', 'INPUT', '-p', 'tcp', '-m', 'tcp',
-                '--dport', str(ssh_port), '-s', ip_range, '-j', 'ACCEPT'])
-            run(['iptables', '-t' , 'nat', '-A', 'PREROUTING', '-p', 'tcp',
-                '-m' ,'tcp', '--dport', str(ssh_port), '-s', ip_range, '-j', 'DNAT',
-                '--to-destination', f'{ip_address_container}:22'])
+                 '--dport', str(ssh_port), '-s', ip_range, '-j', 'ACCEPT'])
+            run(['iptables', '-t', 'nat', '-A', 'PREROUTING', '-p', 'tcp',
+                 '-m', 'tcp', '--dport', str(
+                     ssh_port), '-s', ip_range, '-j', 'DNAT',
+                 '--to-destination', f'{ip_address_container}:22'])
         run(['iptables', '-t', 'nat', '-A', 'POSTROUTING', '-o', f've-{name}',
-            '-j', 'SNAT', '--to-source', IP_LUSTMOLCH])
+             '-j', 'SNAT', '--to-source', IP_LUSTMOLCH])
 
     click.echo('Starting container')
     if not dry_run:
@@ -212,14 +239,17 @@ def create_container(dry_run, config_file, name):
 
     click.echo('Updating container configuration file')
     if not dry_run:
-        update_config(config_file, name, container=context)
+        update_config(config_file, container=context)
 
     click.echo(f'All done, ssh server running on port {ssh_port}\n'
-        'To finish please run "iptables-save".')
+               'To finish please run "iptables-save".')
 
 
 @cli.command()
-@click.option('--config-file', default=DEFAULT_CONF_FILE, help='Container configuration file')
+@click.option(
+    '--config-file',
+    default=DEFAULT_CONF_FILE,
+    help='Container configuration file')
 @click.option('--key-string', is_flag=True, default=False)
 @click.argument('name')
 @click.argument('key')
@@ -241,7 +271,10 @@ def install_ssh_key(config_file, key_string, name, key):
 
 @cli.command()
 @click.option('--dry-run', is_flag=True, default=False)
-@click.option('--config-file', default=DEFAULT_CONF_FILE, help='Container configuration file')
+@click.option(
+    '--config-file',
+    default=DEFAULT_CONF_FILE,
+    help='Container configuration file')
 @click.argument('name')
 def remove_container(dry_run, config_file, name):
     machine_path = Path('/var/lib/machines', name)
@@ -266,7 +299,7 @@ def remove_container(dry_run, config_file, name):
             file_name.unlink()
         except OSError as e:
             click.echo(f'{e} ignored when removing file {file_name}')
-    
+
     click.echo('Removing nspawn config')
     try:
         (nspawn_config.path / nspawn_config.filename.format(name=name)).unlink()
@@ -292,7 +325,8 @@ def remove_container(dry_run, config_file, name):
     except OSError as e:
         click.echo(f'{e} ignored when updating config file')
 
-    click.echo('All done, although you might need to manually remove some iptable rules.')
+    click.echo(
+        'All done, although you might need to manually remove some iptable rules.')
 
 
 if __name__ == '__main__':
