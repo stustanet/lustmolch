@@ -56,7 +56,7 @@ def get_config(file_path):
     return cfg
 
 
-def next_ssh_port(config_file, name):
+def next_ssh_port(cfg, name):
     """
     Return the next available port for the containers ssh server to run on.
     If the container is already present in the list of installed containers
@@ -67,7 +67,6 @@ def next_ssh_port(config_file, name):
 
     Returns: SSH port
     """
-    cfg = get_config(config_file)
 
     if name in cfg:
         return cfg[name].get('ssh_port')
@@ -80,7 +79,7 @@ def next_ssh_port(config_file, name):
     return port
 
 
-def next_ip_address(config_file, name):
+def next_ip_address(cfg, name):
     """
     Return the next available (local) IP address to be assigned to the
     container and the host interfaces.
@@ -90,11 +89,6 @@ def next_ip_address(config_file, name):
 
     Returns (tuple): host_ip, container_ip
     """
-    if not Path(config_file).exists():
-        cfg = {}
-    else:
-        with open(config_file, 'r') as f:
-            cfg = json.load(f)
 
     if name in cfg:
         c = cfg[name]
@@ -143,6 +137,16 @@ def update_config(config_file, container):
 def cli():
     pass
 
+@click.option(
+    '--config-file',
+    default=DEFAULT_CONF_FILE,
+    help='Container configuration file')
+def list(config_file):
+    cfg = get_config(config_file)
+
+    click.echo('Currently registered containers\n')
+    click.echo(json.dumps(cfg, indent=4))
+
 
 @cli.command()
 @click.option('--dry-run', is_flag=True, default=False)
@@ -162,8 +166,9 @@ def create_container(dry_run, config_file, name):
         www_dir.mkdir(parents=True, exist_ok=True)
 
     # place configuration files
-    ip_address_host, ip_address_container = next_ip_address(config_file, name)
-    ssh_port = next_ssh_port(config_file, name)
+    cfg = get_config(config_file)
+    ip_address_host, ip_address_container = next_ip_address(cfg, name)
+    ssh_port = next_ssh_port(cfg, name)
     context = {
         'name': name,
         'ssh_port': ssh_port,
