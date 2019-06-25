@@ -72,7 +72,7 @@ def next_ssh_port(cfg, name):
         return cfg[name].get('ssh_port')
 
     port = SSH_START_PORT
-    for container_name, container in cfg.items():
+    for container in cfg.values():
         if container['ssh_port'] >= port:
             port = container['ssh_port'] + SSH_PORT_INCREMENT
 
@@ -96,19 +96,20 @@ def next_ip_address(cfg, name):
                 c.get('ip_address_container').split('/')[0])
 
     ip_host = list(IP_START_HOST)
-    for container_name, container in cfg.items():
-        if 'ip_address_host' not in container or 'ip_address_container' not in container:
-            continue
-        ip_h = container.get('ip_address_host').split('/')[0].split('.')
-        if int(ip_h[2]) > ip_host[2]:
-            ip_host = [int(x) for x in ip_h]
-            ip_host[3] += 4
-        elif int(ip_h[2]) == ip_host[2] and int(ip_h[3]) > ip_host[3]:
-            if int(ip_h[3]) == 254:
-                ip_host[2] += 1
-                ip_host[3] = 1
-            else:
-                ip_host[3] = int(ip_h[3]) + 4
+
+    container_ips = [container['ip_address_host'].split('/')[0].split('.') 
+            for container in cfg.values()]
+    print(container_ips)
+    ip_host[2] = max([int(ip[2]) for ip in container_ips])
+    ip_host[3] = max([int(ip[3]) for ip in container_ips])
+    ip_host[3] += 4
+
+    if ip_host[3] >= 254:
+        ip_host[3] == 1
+        ip_host[2] += 1
+    if ip_host[2] == 254:
+        click.echo('Error no available IP addresses found')
+        raise Exception()
 
     ip_container = list(ip_host)
     ip_container[3] += 1
@@ -137,11 +138,13 @@ def update_config(config_file, container):
 def cli():
     pass
 
+
+@cli.command()
 @click.option(
     '--config-file',
     default=DEFAULT_CONF_FILE,
     help='Container configuration file')
-def list(config_file):
+def list_containers(config_file):
     cfg = get_config(config_file)
 
     click.echo('Currently registered containers\n')
