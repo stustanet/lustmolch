@@ -288,7 +288,7 @@ def add_user(config_file, key_string, name, key):
     default=DEFAULT_CONF_FILE,
     help='Container configuration file')
 @click.argument('name')
-def remove_user(config_file, name)
+def remove_user(config_file, name):
     cfg = get_config(config_file)
     if name in cfg['users']:
         del cfg['users'][name]
@@ -309,9 +309,11 @@ def update_containers(dry_run, config_file):
     for container in cfg['containers'].values():
         ssh_dir = Path('/var/lib/machines', container['name'], 'root/.ssh')
         authorized_keys = ssh_dir / 'authorized_keys'
+       
+        keys = [user['key'] for user in cfg['users'].values() if user['name'] in container['users']]
+        keys = '\n'.join(keys)
 
-        keys = '\n'.join([user['key'] if user['name'] in container['users'] for user in cfg['users']])
-        click.echo(f'Writing\n\n{keys}\n to authorized key file {authorized_keys}')
+        click.echo(f'Writing\n{keys}\n to authorized key file {authorized_keys}')
         if not dry_run:
             ssh_dir.mkdir(mode=0o700, parents=True, exist_ok=True)
             authorized_keys.touch(mode=0o600, exist_ok=True)
