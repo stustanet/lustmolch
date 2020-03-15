@@ -43,7 +43,7 @@ upload_to_repo:
   script:
     - echo "Uploading debian package to ssn repository"
     - ssh repo@repo.stusta.mhn.de "echo SSH-Connection working"
-    - dupload -f -t ssn_repo build/python3-lustmolch*.changes
+    - dupload -f -t ssn_repo build/lustmolch*.changes
   when: manual
   only:
     - master
