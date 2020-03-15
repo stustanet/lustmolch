@@ -23,6 +23,7 @@ stages:
 build_buster:
   stage: build_buster
   script:
+    - apt update
     - apt install -y python3-stdeb python3-all python-all
     - ./build.sh
     - mkdir -p build/
