@@ -12,7 +12,7 @@ from .config import config, DEFAULT_TEMPLATE_DIR
 
 logging.basicConfig(format='%(levelname)s:%(message)s', level=config['log_level'])
 
-env = Environment(loader=PackageLoader('lustmolch', str(Path(__file__).parent.parent / 'templates')))
+env = Environment(loader=PackageLoader('lustmolch', str(Path(__file__).parent / 'templates')))
 cfg_template = namedtuple('cfg_template', ['source', 'path', 'filename'])
 
 template_files_host = [
