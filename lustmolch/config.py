@@ -14,7 +14,7 @@ DEFAULTS = {
     'ssh_start_port': 10022,
     'ssh_port_increment': 1000,
     'host_ip': '141.84.69.235',
-    'ip_start_host': (192, 168, 0, 1),
+    'ip_start_host': '192.168.0.1',
     'ip_subnet_length': 30,
     'log_level': logging.INFO
 }
@@ -35,15 +35,18 @@ class Config:
         self.config[key] = value
 
     def __getitem__(self, key: str) -> Any:
-        return self.config[key]
+        return self.get(key)
 
     def __setitem__(self, key: str, value: Any) -> Any:
-        self.config[key] = value
+        self.set(key, value)
 
     def __delitem__(self, key):
         del self.config[key]
 
     def save(self):
+        if not self.file_path.exists():
+            self.file_path.parent.mkdir(parents=True, exist_ok=True)
+
         with self.file_path.open('w+') as f:
             json.dump(self.config, f, indent=2)
 

@@ -10,7 +10,7 @@ from jinja2 import Environment, PackageLoader
 
 from .config import config, DEFAULT_TEMPLATE_DIR
 
-logging.basicConfig(level=config['log_level'])
+logging.basicConfig(format='%(levelname)s:%(message)s', level=config['log_level'])
 
 env = Environment(loader=PackageLoader('lustmolch', str(Path(__file__).parent.parent / 'templates')))
 cfg_template = namedtuple('cfg_template', ['source', 'path', 'filename'])
@@ -66,13 +66,13 @@ def next_ip_address(name: str) -> Tuple[str, str]:
         return (c.get('ip_address_host').split('/')[0],
                 c.get('ip_address_container').split('/')[0])
 
-    ip_host = list(config['ip_start_host'])
+    ip_host = [int(ip) for ip in config['ip_start_host'].split('.')]
 
     container_ips = [container['ip_address_host'].split('/')[0].split('.')
                      for container in config['containers'].values()]
 
-    ip_host[2] = max([int(ip[2]) for ip in container_ips])
-    ip_host[3] = max([int(ip[3]) for ip in container_ips])
+    ip_host[2] = max([int(ip[2]) for ip in container_ips] + [ip_host[2]])
+    ip_host[3] = max([int(ip[3]) for ip in container_ips] + [ip_host[3]])
     ip_host[3] += 4
 
     if ip_host[3] >= 254:
@@ -85,9 +85,9 @@ def next_ip_address(name: str) -> Tuple[str, str]:
     ip_container = list(ip_host)
     ip_container[3] += 1
     return (
-        '.'.join(
-            str(x) for x in ip_host), '.'.join(
-            str(x) for x in ip_container))
+        '.'.join(str(x) for x in ip_host),
+        '.'.join(str(x) for x in ip_container)
+    )
 
 
 def list_containers():
@@ -117,7 +117,7 @@ def create_container(dry_run, name):
         'ssh_port': ssh_port,
         'ip_address_host': ip_address_host,
         'ip_address_container': ip_address_container,
-        'ip_subnet_length': config['ip_subnet_lenght'],
+        'ip_subnet_length': config['ip_subnet_length'],
         'url': f'{name}.stusta.de',
         'users': []
     }
@@ -209,8 +209,12 @@ def add_user(key_string: bool, name: str, key: str) -> None:
 
 def remove_user(name: str) -> None:
     """remove a user, doesn't remove the user from all containers"""
+    logging.info(f'Removing user {name}')
     if name in config['users']:
         del config['users'][name]
+
+    for container in config['containers']:
+        container['users'] = [user for user in container['users'] if user != name]
 
     config.save()
 
