@@ -46,7 +46,6 @@ def update_containers(dry_run: bool) -> None:
 
 
 @cli.command()
-@click.option('--dry-run', is_flag=True, default=False)
 @click.argument('name')
-def remove_container(dry_run: bool, name: str) -> None:
-    lustmolch.remove_container(dry_run, name)
+def remove_container(name: str) -> None:
+    lustmolch.remove_container(name)

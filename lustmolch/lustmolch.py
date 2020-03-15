@@ -187,6 +187,7 @@ def create_container(dry_run, name):
 
     logging.info('Updating container configuration file')
     if not dry_run:
+        config['containers'][name] = context
         config.save()
 
     logging.info(f'All done, ssh server running on port {ssh_port}\n'
@@ -236,13 +237,12 @@ def update_containers(dry_run: bool) -> None:
             authorized_keys.write_text(keys)
 
 
-def remove_container(dry_run: bool, name: str) -> None:
+def remove_container(name: str) -> None:
     """delete a container and its configuration files"""
     machine_path = Path('/var/lib/machines', name)
 
     logging.info(f'Stopping container')
-    if not dry_run:
-        run(['machinectl', 'stop', name], capture_output=True, check=False)
+    run(['machinectl', 'stop', name], capture_output=True, check=False)
 
     # removing shared folder
     www_dir = Path(config['www_root']) / name
