@@ -26,15 +26,12 @@ build_buster:
     - apt update
     - apt install -y python3-stdeb python-all
     - ./build.sh
-    - ls
-    - ls deb_dist
-    - ls dist
     - mkdir -p build/
-    - mv ../deb_dist/python3-lustmolch*.deb build/
-    - mv ../deb_dist/python3-lustmolch*.changes build/
-    - mv ../deb_dist/python3-lustmolch*.tar.gz build/
-    - mv ../deb_dist/python3-lustmolch*.dsc build/
-    - mv ../deb_dist/python3-lustmolch*.buildinfo build/
+    - mv deb_dist/python3-lustmolch*.deb build/
+    - mv deb_dist/lustmolch*.changes build/
+    - mv deb_dist/lustmolch*.tar.gz build/
+    - mv deb_dist/lustmolch*.dsc build/
+    - mv deb_dist/lustmolch*.buildinfo build/
 
   # The files which are to be made available in GitLab
   artifacts:
