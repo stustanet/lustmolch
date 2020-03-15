@@ -3,3 +3,7 @@
 __pycache__
 containers.json
 .mypy_cache
+*.tar.gz
+dist
+deb_dist
+*.egg-info
