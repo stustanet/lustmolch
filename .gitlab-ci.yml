@@ -26,6 +26,9 @@ build_buster:
     - apt update
     - apt install -y python3-stdeb python-all
     - ./build.sh
+    - ls
+    - pwd
+    - ls ..
     - mkdir -p build/
     - mv ../deb_dist/python3-lustmolch*.deb build/
     - mv ../deb_dist/python3-lustmolch*.changes build/
