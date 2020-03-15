@@ -23,7 +23,7 @@ stages:
 build_buster:
   stage: build_buster
   script:
-    - apt install -y python3-stdeb python3-all
+    - apt install -y python3-stdeb python3-all python-all
     - ./build.sh
     - mkdir -p build/
     - mv ../python3-lustmolch*.deb build/
