@@ -1,5 +1,5 @@
 default:
-  image: debian-python-build:bullseye
+  image: debian-build-python:bullseye
 
 # Is performed before the scripts in the stages step
 before_script:
@@ -39,7 +39,7 @@ upload_to_repo:
   script:
     - echo "Uploading debian package to ssn repository"
     - ssh repo@repo.stusta.mhn.de "echo SSH-Connection working"
-    - dupload -f -t ssn_repo build/lustmolch*.changes
+    - dupload -f --nomail -t ssn_repo build/lustmolch*.changes
   when: manual
   only:
     - master
