@@ -1,5 +1,5 @@
 default:
-  image: debian-python-build:v2
+  image: debian-python-build:bullseye
 
 # Is performed before the scripts in the stages step
 before_script:
